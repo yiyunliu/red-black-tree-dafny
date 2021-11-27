@@ -10,6 +10,13 @@ function method elems(t : RBTree) : set<int> {
 	if t == Empty then {} else {t.value} + elems(t.left) + elems(t.right)
 }
 
+method testHigher (f : int -> int)
+	requires forall x :: f(x) == 1 + x
+	ensures forall x :: f(x) - 1 == x
+{
+}
+
+
 class RBTreeRef {
  	ghost var Tree : RBTree
 		ghost var Repr : set<RBTreeRef>
@@ -19,6 +26,7 @@ class RBTreeRef {
 		var parent: RBTreeRef?
 		var color: Color
 		predicate Valid()
+			decreases Repr
   		reads this, Repr {
 				this in Repr &&
 					Tree.Node? &&
@@ -30,7 +38,10 @@ class RBTreeRef {
 					left.Valid() && left.Tree == Tree.left && left.parent == this) &&
 					(right != null ==> right in Repr && right.Repr <= Repr && this !in right.Repr &&
 					right.Valid() && right.Tree == Tree.right && right.parent == this) &&
-					isWellFormed(Tree)
+					(left != null && right != null ==> left.Repr * right.Repr == {}) &&
+					// isWellFormed(Tree)
+					isBalanced(Tree) &&
+					isOrdered(Tree)
 		}
 
 
@@ -62,6 +73,145 @@ class RBTreeRef {
 				r := true;
 			}
 		}
+
+		static method getParent(t : RBTreeRef?) returns (p : RBTreeRef?) {
+			if (t == null) {
+				return null;
+			}
+
+			return t.parent;
+		}
+
+		// static method getRoot(t :RBTreeRef) returns (p : RBTreeRef?) {
+		// 	if (t.parent == null) {
+		// 		p := t;
+		// 		return;
+		// 	}
+		// r := getRoot(t.parent);
+		// }
+
+		static function ElemsN (t : RBTreeRef?) : set<int>
+		reads t {
+			if (t == null) then {} else elems(t.Tree)
+		}
+
+
+		static function countBlackN (t : RBTreeRef?) : int
+			reads t {
+				if (t == null) then 1 else countBlack(t.Tree)
+		}
+
+		
+
+    // http://leino.science/papers/krml273.html
+		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
+			requires n.parent == null
+			requires n.Repr == {n}
+			requires n !in ReprN(t)
+			requires t != null ==> t.Valid()
+			requires n.Valid()
+			requires elems(n.Tree)=={n.value}
+			requires n.color == Red
+
+  		modifies if t != null then t.Repr else {}
+ 			modifies n
+			
+  		ensures if t == null then r == n else r == t
+			ensures t != null ==> t.parent == old(t.parent)
+			ensures n == old(n)
+			ensures n.value == old(n.value)
+			ensures n.color == old(n.color)
+			ensures n.left == null
+			ensures n.right == null
+			ensures n.Repr == {n}
+			ensures n.Valid()
+			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
+			ensures old(countBlackN(t)) == countBlackN(r)
+			ensures t != null ==> old(t.Repr) + {n} == r.Repr
+			ensures r.Valid()
+      // ensures t != null ==> isOrdered(t.Tree)
+			// ensures isBalanced(r.Tree) && isOrdered(r.Tree)
+      decreases ReprN(t)
+		{
+
+			if (t == null) {
+				r := n;
+				return;
+			}
+
+			r := t;
+
+			if (t.value == n.value) {
+				t.Repr := t.Repr + {n};
+				return;
+			}
+
+
+			// n.parent doesn't work because dafny doesn't know n remains the same
+
+			if (n.value < t.value) {
+				// assert(isOrdered(old(t).Tree));
+
+				var newLeft := insertBST(t.left, n);
+				// assert(r.right != null ==> r.right.Tree == r.Tree.right);
+
+				r.Repr := r.Repr + {n};
+				r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
+
+				r.left := newLeft;
+				// assert(forall i :: i in old(ElemsN(t.left)) ==> i < t.value);
+				// assert(r.left != null);
+				// assert(r.left == null ==> r.Tree.left == Empty);
+				// assert(r.Repr >= ReprN(r.right));
+				// assert(r.left != null);
+				// assert(r.left == null ==> r.Tree.left == Empty);
+				// assert(ReprN(newLeft) == old(ReprN(r.left)) + {n});
+				// assert(old(r.right) == r.right);
+				// assert(old(ReprN(r.right)) == ReprN(r.right));
+				// assert(ReprN(r.right) <= old(ReprN(t)));
+				// assert(old(t.Repr) + {n} == r.Repr);
+				// assert(r.Repr >= ReprN(r.right) + (old(ReprN(t.left)) + {n}));
+				// assert(r.Repr >= ReprN(newLeft));
+				// assert(newLeft == r.left);
+				if(newLeft == n){
+					n.parent := t;
+				}
+				return;
+			}
+
+			if (n.value > t.value) {
+				// assert(r.left != null ==> r.left.Tree == r.Tree.left);
+				var newRight := insertBST(t.right, n);
+				// assert(r.left != null ==> r.left.Tree == r.Tree.left);
+
+				r.Repr := r.Repr + {n};
+				r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
+				// assert(r.left != null ==> r.left.Tree == r.Tree.left);
+				r.right := newRight;
+				// assert(forall i :: i in old(ElemsN(t.right)) ==> i > t.value);
+				// assert(r.right != null);
+				// assert(r.right == null ==> r.Tree.right == Empty);
+				// assert(ReprN(newRight) == old(ReprN(r.right)) + {n});
+				// assert(r == old(t));
+				// assert(old(r.left) == r.left);
+				// assert(r.left != null ==> r.left.Tree == r.Tree.left);
+				// assert(old(ReprN(r.left)) == ReprN(r.left));
+				// assert(ReprN(r.left) <= old(ReprN(t)));
+				// assert(old(t.Repr) + {n} == r.Repr);
+				// assert(r.Repr >= ReprN(r.left) + (old(ReprN(t.right)) + {n}));
+				// assert(r.Repr >= ReprN(newRight));
+				// assert(newRight == r.right);
+				if(newRight == n){
+					n.parent := t;
+				}
+				return;
+			}
+			
+			assert(false);
+
+		}
+
+		// static method getGrandparent(t : RBTreeRef?) returns (g : RBTreeRef?)
 
 }
 
