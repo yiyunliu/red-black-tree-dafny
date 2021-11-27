@@ -1,3 +1,7 @@
+// https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1910-binding-guards
+
+// do imperative BST instead of full-fledged RBTree
+
 datatype Color = Red | Black
 
 datatype RBTree = Empty  | Node (color : Color, value : int, left : RBTree, right : RBTree)
@@ -116,40 +120,42 @@ method setBlack(t : RBTree) returns (r : RBTree)
 // }
 
 
-// class Node {
-//   // ghost var List: seq<int>
-//   ghost var Repr: set<Node>
-//   var head: int
-//   var next: Node? // Node? means a Node value or null
-// 	var right: Node?
+class Node {
+  // ghost var List: seq<int>
+  ghost var Repr: set<Node>
+  var head: int
+  var next: Node? // Node? means a Node value or null
+	var parent: Node?
 
-//   predicate Valid()
-//     reads this, Repr
-//   {
-//     this in Repr &&
-//     // 1 <= |List| && List[0] == head &&
-//     // (next == null ==> |List| == 1) &&
-//     (next != null ==>
-//       next in Repr && next.Repr <= Repr && this !in next.Repr &&
-//       next.Valid() // && next.List == List[1..]
-// 			)
-//   }
+  predicate Valid()
+		decreases Repr
+    reads this, Repr
+  {
+    this in Repr &&
+    // 1 <= |List| && List[0] == head &&
+    // (next == null ==> |List| == 1) &&
+    (next != null ==>
+      next in Repr && next.Repr <= Repr && this !in next.Repr &&
+      next.Valid() && // && next.List == List[1..] 
+			(next.parent == this)) 
+			
+  }
 
-//   // static method Cons(x: int, tail: Node?) returns (n: Node)
-//   //   requires tail == null || tail.Valid()
-//   //   ensures n.Valid()
-//   //   ensures if tail == null then n.List == [x]
-//   //                           else n.List == [x] + tail.List
-//   // {
-//   //   n := new Node;
-//   //   n.head, n.next := x, tail;
-//   //   if (tail == null) {
-//   //     n.List := [x];
-//   //     n.Repr := {n};
-//   //   } else {
-//   //     n.List := [x] + tail.List;
-//   //     n.Repr := {n} + tail.Repr;
-//   //   }
-//   // }
-// }
+  // static method Cons(x: int, tail: Node?) returns (n: Node)
+  //   requires tail == null || tail.Valid()
+  //   ensures n.Valid()
+  //   ensures if tail == null then n.List == [x]
+  //                           else n.List == [x] + tail.List
+  // {
+  //   n := new Node;
+  //   n.head, n.next := x, tail;
+  //   if (tail == null) {
+  //     n.List := [x];
+  //     n.Repr := {n};
+  //   } else {
+  //     n.List := [x] + tail.List;
+  //     n.Repr := {n} + tail.Repr;
+  //   }
+  // }
+}
 
