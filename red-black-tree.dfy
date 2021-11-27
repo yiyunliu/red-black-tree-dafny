@@ -6,6 +6,31 @@ datatype Color = Red | Black
 
 datatype RBTree = Empty  | Node (color : Color, value : int, left : RBTree, right : RBTree)
 
+
+class RBTreeRef {
+ 	ghost var Tree : RBTree
+		ghost var Repr : set<RBTreeRef>
+		var value: int
+		var left: RBTreeRef?
+		var right: RBTreeRef?
+		var parent: RBTreeRef?
+		var color: Color
+		predicate Valid()
+  	reads this, Repr {
+			this in Repr &&
+				Tree.Node? &&
+				Tree.value == value &&
+				Tree.color == color &&
+				(left == null ==> Tree.left.Empty?) &&
+				(right == null ==> Tree.right.Empty?) &&
+				(left != null ==> left in Repr && left.Repr <= Repr && this !in left.Repr &&
+				left.Valid() && left.Tree == Tree.left && left.parent == this) &&
+				(right != null ==> right in Repr && right.Repr <= Repr && this !in right.Repr &&
+				right.Valid() && right.Tree == Tree.right && right.parent == this) &&
+				isWellFormed(Tree)
+		}
+}
+
 // predicate isBlack(t : RBTree) {
 // 	!isRed(t)
 // }
@@ -58,32 +83,32 @@ method Testing()
 }
 
 
-method ins(t : RBTree, v: int) returns (r : RBTree)
-	requires almostWellFormed(t)
-	ensures almostWellFormed(r)		// need to include more precise information about ordering
-	decreases t;
-{
-	if(t.Empty?){
-		return Node(Red,v,Empty,Empty);
-	}
-	if (v < t.value) {
+// method ins(t : RBTree, v: int) returns (r : RBTree)
+// 	requires almostWellFormed(t)
+// 	ensures almostWellFormed(r)		// need to include more precise information about ordering
+// 	decreases t;
+// {
+// 	if(t.Empty?){
+// 		return Node(Red,v,Empty,Empty);
+// 	}
+// 	if (v < t.value) {
 		
-	}
-	if (v > t.value) {
+// 	}
+// 	if (v > t.value) {
 		
-	}
-	return t;
-}
+// 	}
+// 	return t;
+// }
 
-method setBlack(t : RBTree) returns (r : RBTree)
-	requires almostWellFormed(t)
-	ensures isWellFormed(r)
-{
-	if (t.Empty?) {
-		return Empty;
-	}
-	return Node(Black, t.value,t.left,t.right);
-}
+// method setBlack(t : RBTree) returns (r : RBTree)
+// 	requires almostWellFormed(t)
+// 	ensures isWellFormed(r)
+// {
+// 	if (t.Empty?) {
+// 		return Empty;
+// 	}
+// 	return Node(Black, t.value,t.left,t.right);
+// }
 
 
 // method balanceL(c : Color, v : int, l : RBTree, r : RBTree) returns (r : RBTree)
@@ -120,42 +145,42 @@ method setBlack(t : RBTree) returns (r : RBTree)
 // }
 
 
-class Node {
-  // ghost var List: seq<int>
-  ghost var Repr: set<Node>
-  var head: int
-  var next: Node? // Node? means a Node value or null
-	var parent: Node?
+// class Node {
+//   // ghost var List: seq<int>
+//   ghost var Repr: set<Node>
+//   var head: int
+//   var next: Node? // Node? means a Node value or null
+// 	var parent: Node?
 
-  predicate Valid()
-		decreases Repr
-    reads this, Repr
-  {
-    this in Repr &&
-    // 1 <= |List| && List[0] == head &&
-    // (next == null ==> |List| == 1) &&
-    (next != null ==>
-      next in Repr && next.Repr <= Repr && this !in next.Repr &&
-      next.Valid() && // && next.List == List[1..] 
-			(next.parent == this)) 
+//   predicate Valid()
+// 		decreases Repr
+//     reads this, Repr
+//   {
+//     this in Repr &&
+//     // 1 <= |List| && List[0] == head &&
+//     // (next == null ==> |List| == 1) &&
+//     (next != null ==>
+//       next in Repr && next.Repr <= Repr && this !in next.Repr &&
+//       next.Valid() && // && next.List == List[1..] 
+// 			(next.parent == this)) 
 			
-  }
+//   }
 
-  // static method Cons(x: int, tail: Node?) returns (n: Node)
-  //   requires tail == null || tail.Valid()
-  //   ensures n.Valid()
-  //   ensures if tail == null then n.List == [x]
-  //                           else n.List == [x] + tail.List
-  // {
-  //   n := new Node;
-  //   n.head, n.next := x, tail;
-  //   if (tail == null) {
-  //     n.List := [x];
-  //     n.Repr := {n};
-  //   } else {
-  //     n.List := [x] + tail.List;
-  //     n.Repr := {n} + tail.Repr;
-  //   }
-  // }
-}
+//   // static method Cons(x: int, tail: Node?) returns (n: Node)
+//   //   requires tail == null || tail.Valid()
+//   //   ensures n.Valid()
+//   //   ensures if tail == null then n.List == [x]
+//   //                           else n.List == [x] + tail.List
+//   // {
+//   //   n := new Node;
+//   //   n.head, n.next := x, tail;
+//   //   if (tail == null) {
+//   //     n.List := [x];
+//   //     n.Repr := {n};
+//   //   } else {
+//   //     n.List := [x] + tail.List;
+//   //     n.Repr := {n} + tail.Repr;
+//   //   }
+//   // }
+// }
 
