@@ -4,6 +4,8 @@
 
 datatype Color = Red | Black
 
+datatype Direction = Left | Right
+
 datatype RBTree = Empty  | Node (color : Color, value : int, left : RBTree, right : RBTree)
 
 function method elems(t : RBTree) : set<int> {
@@ -20,6 +22,7 @@ method testHigher (f : int -> int)
 class RBTreeRef {
  	ghost var Tree : RBTree
 		ghost var Repr : set<RBTreeRef>
+		ghost var ReprUB : set<RBTreeRef>
 		var value: int
 		var left: RBTreeRef?
 		var right: RBTreeRef?
@@ -28,6 +31,7 @@ class RBTreeRef {
 		predicate Valid()
 			decreases Repr
   		reads this, Repr {
+				// Repr <= ReprUB &&
 				this in Repr &&
 					Tree.Node? &&
 					Tree.value == value &&
@@ -42,6 +46,11 @@ class RBTreeRef {
 					// isWellFormed(Tree)
 					isBalanced(Tree) &&
 					isOrdered(Tree)
+		}
+
+		predicate ValidRB()
+			reads this, Repr{
+				Valid() && noRedRed(Tree)
 		}
 
 
@@ -82,6 +91,13 @@ class RBTreeRef {
 			return t.parent;
 		}
 
+		predicate NoRedRedAncestors()
+		reads this, this.parent {
+			this.parent != null ==> {
+				noRedRed(if this.parent.left == this then noRedRedR())
+			}
+		}
+
 		// static method getRoot(t :RBTreeRef) returns (p : RBTreeRef?) {
 		// 	if (t.parent == null) {
 		// 		p := t;
@@ -108,27 +124,29 @@ class RBTreeRef {
 			requires n.parent == null
 			requires n.Repr == {n}
 			requires n !in ReprN(t)
-			requires t != null ==> t.Valid()
+			requires t != null ==> t.ValidRB()
 			requires n.Valid()
 			requires elems(n.Tree)=={n.value}
 			requires n.color == Red
 
   		modifies if t != null then t.Repr else {}
- 			modifies n
-			
   		ensures if t == null then r == n else r == t
 			ensures t != null ==> t.parent == old(t.parent)
-			ensures n == old(n)
-			ensures n.value == old(n.value)
-			ensures n.color == old(n.color)
-			ensures n.left == null
-			ensures n.right == null
-			ensures n.Repr == {n}
-			ensures n.Valid()
+
+ 			modifies n`parent
+
+			// ensures n == old(n)
+			// ensures n.value == old(n.value)
+			// ensures n.color == old(n.color)
+			// ensures n.left == null
+			// ensures n.right == null
+			// ensures n.Repr == {n}
+			ensures n.ValidRB()
 			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
+			ensures n.NoRedRedExceptTop()
       decreases ReprN(t)
 		{
 
@@ -241,6 +259,17 @@ predicate isOrdered(t : RBTree) {
 // 		(t.right.Node? ==> t.value < t.right.value && isOrdered(t.right))
 // }
 
+
+// WATCH OUT ITS DEFINITION
+predicate noRedRedR(t : RBTree) {
+	(isRed(t) ==> !isRed(t.right)) &&
+		noRedRed(t.right)
+}
+
+predicate noRedRedL(t : RBTree) {
+  (isRed(t) ==> !isRed(t.left)) &&
+		noRedRed(t.left)
+}
 
 predicate noRedRed(t : RBTree) {
 	(isRed(t) ==> !isRed(t.left) && ! isRed(t.right)) &&
