@@ -40,31 +40,27 @@ class RBTreeRef {
 			if (t == null) then {} else t.Repr
 		}
 
+
 		static method Member(t : RBTreeRef?, v : int) returns (r : bool)
-			// requires t != null ==> t.Valid()
-			// decreases ReprN(t)
+			requires t != null ==> t.Valid()
+			ensures (t == null ==> !r) && (t != null ==> (r <==> v in elems(t.Tree)))
+			decreases ReprN(t)
 		{
-			// if (t == null) {
-			// 	r := false;
-			// }
+			if (t == null) {
+				r := false;
+			}
 
-			// else if (v < t.value) {
-			// 	r := Member(t.left, v);
-			// }
+			else if (v < t.value) {
+				r := Member(t.left, v);
+			}
 
-			// else if (v > t.value) {
-			// 	r := Member(t.right, v);
-			// }
+			else if (v > t.value) {
+				r := Member(t.right, v);
+			}
 
-			// else {
-			// 	r := true;
-		// }
-		r := true;
-		return true;
-		}
-
-		static method Constant(t :RBTreeRef?) returns (r : bool) {
-			return true;
+			else {
+				r := true;
+			}
 		}
 
 }
@@ -95,10 +91,10 @@ method Testing()
 	assert(t2.Valid());
 
 
-	// var r := RBTreeRef.Member(t3, 9);
-	// assert(t2.value == 10);
-
-	var r := RBTreeRef.Constant(null);
+	// Methods are opaque!!
+	var r := RBTreeRef.Member(t2, 9);
+	// assertion would fail if Member weren't annotated
+	assert(r);
 }
 
 
