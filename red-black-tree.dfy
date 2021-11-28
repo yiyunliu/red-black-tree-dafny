@@ -107,26 +107,33 @@ class RBTreeRef {
 			requires this.Valid()
 			ensures this.ElemsRef() <= this.Repr
 			ensures forall i :: i in ElemsRef() ==> i.Valid() && i in this.Repr
-			ensures forall i :: i in ElemsRef() && i != this ==> i.Repr < Repr && ReprN(i.parent) <= Repr && (i.parent != null ==> i.parent in ElemsRef())
-			ensures forall i :: i in ElemsRef() && i != this ==> i.parent != null && i.Repr < i.parent.Repr
-
+			ensures forall i :: i in ElemsRef() && i != this ==> i.Repr < Repr && ReprN(i.parent) <= Repr && i.parent != null && i.parent in ElemsRef() && i.Repr < i.parent.Repr
 		{
 				{this} + (if left == null then {} else left.ElemsRef()) + (if right == null then {} else right.ElemsRef())
 		}
 
 		predicate PartialNoRR (root : RBTreeRef)
 			reads root, root.Repr
-			requires root.Valid() && root.parent == null
+			requires root.Valid()
 			requires this in root.ElemsRef()
 			ensures this.Valid()
 			decreases root.Repr - this.Repr
 		{
-			this.parent != null ==>
-				this.parent.PartialNoRR(root)
+			// this.parent != null ==>
+			this != root ==>
+				this.parent.PartialNoRR(root) &&
+				(this.parent.left == this || this.parent.right == this) &&
+				(this.parent.left == this ==> noRedRedR(this.parent.Tree)) &&
+				(this.parent.right == this ==> noRedRedL(this.parent.Tree))
 		}
 
     // http://leino.science/papers/krml273.html
 		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
+			// requires t != null ==> root != null && root.Valid() && t in root.ElemsRef()
+			// requires root != null ==> (root.Valid() && (t != null ==> t in root.ElemsRef()))
+
+
+			// try this: forall i in children(r), i != r ==> ... 
 			requires n.parent == null
 			requires n.Repr == {n}
 			requires n !in ReprN(t)
@@ -145,6 +152,7 @@ class RBTreeRef {
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
+			ensures n.value !in ElemsN(t) ==> n in r.ElemsRef() && n.PartialNoRR(r)
       decreases ReprN(t)
 		{
 
@@ -257,6 +265,16 @@ predicate isOrdered(t : RBTree) {
 // 		(t.right.Node? ==> t.value < t.right.value && isOrdered(t.right))
 // }
 
+
+predicate noRedRedR(t : RBTree) {
+	(isRed(t) ==> !isRed(t.right)) &&
+		(t.Node? ==> noRedRed(t.right))
+}
+
+predicate noRedRedL(t : RBTree) {
+  (isRed(t) ==> !isRed(t.left)) &&
+		(t.Node? ==> noRedRed(t.left))
+}
 
 predicate noRedRed(t : RBTree) {
 	(isRed(t) ==> !isRed(t.left) && ! isRed(t.right)) &&
