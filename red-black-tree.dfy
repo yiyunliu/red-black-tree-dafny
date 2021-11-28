@@ -101,7 +101,29 @@ class RBTreeRef {
 				if (t == null) then 1 else countBlack(t.Tree)
 		}
 
-		
+
+		function ElemsRef () : set<RBTreeRef>
+			reads this, this.Repr
+			requires this.Valid()
+			ensures this.ElemsRef() <= this.Repr
+			ensures forall i :: i in ElemsRef() ==> i.Valid() && i in this.Repr
+			ensures forall i :: i in ElemsRef() && i != this ==> i.Repr < Repr && ReprN(i.parent) <= Repr && (i.parent != null ==> i.parent in ElemsRef())
+			ensures forall i :: i in ElemsRef() && i != this ==> i.parent != null && i.Repr < i.parent.Repr
+
+		{
+				{this} + (if left == null then {} else left.ElemsRef()) + (if right == null then {} else right.ElemsRef())
+		}
+
+		predicate PartialNoRR (root : RBTreeRef)
+			reads root, root.Repr
+			requires root.Valid() && root.parent == null
+			requires this in root.ElemsRef()
+			ensures this.Valid()
+			decreases root.Repr - this.Repr
+		{
+			this.parent != null ==>
+				this.parent.PartialNoRR(root)
+		}
 
     // http://leino.science/papers/krml273.html
 		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
