@@ -242,16 +242,12 @@ class RBTreeRef {
 
 			r := insertBST(t, n);
 
+			
+			// handle the trivial case where n is not inserted at all
 			if(n.parent == null || n == r) {
 				assert(r.ValidRB());
 				return;
 			}
-
-			assert(n.parent.PartialNoRR(r));
-			assert(n.ValidRB());
-			assert(n in r.ElemsRef());
-			assert(ElemsN(r) == ElemsN(t) + {v});
-			assert(n.PartialNoRRP());
 
 			while(true)
 				invariant r.Valid()
@@ -264,19 +260,29 @@ class RBTreeRef {
 				// invariant 0 <= index <= a.Length
 				// invariant forall j : nat :: j < index ==> a[j] != key
 			{
+				// Case 3
 				if(n == r) {
-					assert(r.ValidRB());
+					// assert(r.ValidRB());
 					break;
 				}
 
+				// Case 1
 				if(n.parent.color == Black) {
-					assert(n.parent.ValidRB());
+					// assert(n.parent.ValidRB());
 					CombineNoRR(n.parent, r);
-					assert(r.ValidRB());
+					// assert(r.ValidRB());
 					break;
 				}
 
 				// now the parent's color is Red
+
+				// Case 4
+				if(n.parent == r) {
+					n.parent.color := Black;
+					n.parent.Tree := n.parent.Tree.(color := Black);
+					assert(r.ValidRB());
+					break;
+				}
 				
 				
 				break;
