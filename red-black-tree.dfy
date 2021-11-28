@@ -148,6 +148,35 @@ class RBTreeRef {
 		}
 
 
+		predicate PartialNoRRP ()
+			reads this.parent
+			reads this
+			requires this.parent != null
+		{
+			  (this.parent.left == this || this.parent.right == this) &&
+				(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
+				(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
+		}
+
+
+		static lemma CombineNoRR(r0 : RBTreeRef, r1 : RBTreeRef)
+			requires r0.ValidRB()
+			requires r1.Valid()
+			requires r0 in r1.ElemsRef()
+			requires r0.PartialNoRR(r1)
+			ensures r1.ValidRB()
+			decreases r1.Repr - r0.Repr
+		{
+			if (r0 == r1) {
+				assert(r1.ValidRB());
+				return;
+			}
+
+			assert(r0.parent.ValidRB());
+			assert(r0.parent.PartialNoRR(r1));
+			CombineNoRR(r0.parent, r1);
+		}
+
 
 		static lemma ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
 			requires r1.Valid()
@@ -221,8 +250,35 @@ class RBTreeRef {
 			assert(n.parent.PartialNoRR(r));
 			assert(n.ValidRB());
 			assert(n in r.ElemsRef());
+			assert(ElemsN(r) == ElemsN(t) + {v});
+			assert(n.PartialNoRRP());
 
-			while(true) {
+			while(true)
+				invariant r.Valid()
+				invariant ElemsN(r) == ElemsN(t) + {v}
+				invariant n in r.ElemsRef()
+				invariant n != r ==> n.parent.PartialNoRR(r) && n.PartialNoRRP() && n.color == Red
+				invariant n.ValidRB()
+				decreases r.Repr - n.Repr
+				// decreases a.Length - index
+				// invariant 0 <= index <= a.Length
+				// invariant forall j : nat :: j < index ==> a[j] != key
+			{
+				if(n == r) {
+					assert(r.ValidRB());
+					break;
+				}
+
+				if(n.parent.color == Black) {
+					assert(n.parent.ValidRB());
+					CombineNoRR(n.parent, r);
+					assert(r.ValidRB());
+					break;
+				}
+
+				// now the parent's color is Red
+				
+				
 				break;
 			}
 		}
@@ -247,7 +303,7 @@ class RBTreeRef {
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
-			ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r))
+			ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r)) && n.PartialNoRRP()
 			ensures t == r ==> t.color == old(t.color)
 			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
 			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
@@ -382,13 +438,24 @@ predicate isOrdered(t : RBTree) {
 // }
 
 
+predicate noRedRedRP(t : RBTree) {
+	(isRed(t) ==> !isRed(t.right)) &&
+		(t.Node? ==> noRedRed(t.right))
+}
+
+predicate noRedRedLP(t : RBTree) {
+  (isRed(t) ==> !isRed(t.left)) &&
+		(t.Node? ==> noRedRed(t.left))
+}
+
+
 predicate noRedRedR(t : RBTree) {
 	(isRed(t) ==> !isRed(t.left) && !isRed(t.right)) &&
 		(t.Node? ==> noRedRed(t.right))
 }
 
 predicate noRedRedL(t : RBTree) {
-  (isRed(t) ==> !isRed(t.left) && !isRed(t.left)) &&
+  (isRed(t) ==> !isRed(t.left) && !isRed(t.right)) &&
 		(t.Node? ==> noRedRed(t.left))
 }
 
