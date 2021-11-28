@@ -152,7 +152,7 @@ class RBTreeRef {
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
-			ensures n.value !in ElemsN(t) ==> n in r.ElemsRef() && n.PartialNoRR(r)
+			ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
       decreases ReprN(t)
 		{
 
