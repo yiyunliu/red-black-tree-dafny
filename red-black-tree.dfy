@@ -195,12 +195,13 @@ class RBTreeRef {
 		}
 
     // http://leino.science/papers/krml273.html
-		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
-			// requires t != null ==> root != null && root.Valid() && t in root.ElemsRef()
-			// requires root != null ==> (root.Valid() && (t != null ==> t in root.ElemsRef()))
-
-
-			// try this: forall i in children(r), i != r ==> ... 
+		static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
+			requires t != null ==> t.ValidRB()
+		{
+			
+		}
+		
+		static method insertBST(t : RBTreeRef, n : RBTreeRef) returns (r : RBTreeRef)
 			requires n.parent == null
 			requires n.Repr == {n}
 			requires n !in ReprN(t)
@@ -250,10 +251,10 @@ class RBTreeRef {
 				}
 
 				if(n.value !in old(ElemsN(t))){
-					assert(n in newLeft.ElemsRef());
+					// assert(n in newLeft.ElemsRef());
 					// assume(n.PartialNoRR(newLeft));
 					ElemsRefTrans(n,newLeft,r);
-					assert(newLeft.PartialNoRR(r));
+					// assert(newLeft.PartialNoRR(r));
 					partialNoRRTrans(n,newLeft,r);
 					assert(n.PartialNoRR(r));
 				}
@@ -271,12 +272,12 @@ class RBTreeRef {
 
 
 				if(n.value !in old(ElemsN(t))){
-					assert(n in newRight.ElemsRef());
+					// assert(n in newRight.ElemsRef());
 					// assume(n.PartialNoRR(newRight));
 					ElemsRefTrans(n,newRight,r);
-					assert(newRight.PartialNoRR(r));
+					// assert(newRight.PartialNoRR(r));
 					partialNoRRTrans(n,newRight,r);
-					assert(n.PartialNoRR(r));
+					// assert(n.PartialNoRR(r));
 				}
 				return;
 			}
