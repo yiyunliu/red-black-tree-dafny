@@ -195,44 +195,35 @@ class RBTreeRef {
 		}
 
     // http://leino.science/papers/krml273.html
-		static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
-			requires t != null ==> t.ValidRB()
-			ensures r.Valid()
-			modifies if t != null then t.Repr else {}
-		{
- 	// ghost var Tree : RBTree
-	// 	ghost var Repr : set<RBTreeRef>
-	// 	var value: int
-	// 	var left: RBTreeRef?
-	// 	var right: RBTreeRef?
-	// 	var parent: RBTreeRef?
-	// 	var color: Color
+		// static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
+		// 	requires t != null ==> t.ValidRB()
+		// 	ensures r.Valid()
+		// 	modifies if t != null then t.Repr else {}
+		// {
+    // 	var n := new RBTreeRef;
+		// 	n.Tree := Node(Red,v,Empty,Empty);
+		// 	n.Repr := {n};
+		// 	n.value := v;
+		// 	n.left := null;
+		// 	n.right := null;
+		// 	n.color := Red;
+		// 	n.parent := null;
 
+		// 	assert(n.ValidRB());
 
-    	var n := new RBTreeRef;
-			n.Tree := Node(Red,v,Empty,Empty);
-			n.Repr := {n};
-			n.value := v;
-			n.left := null;
-			n.right := null;
-			n.color := Red;
-			n.parent := null;
+		// 	r := insertBST(t, n);
 
-			assert(n.ValidRB());
+		// 	if(n.parent == null || n == r) {
+		// 		assert(r.ValidRB());
+		// 		return;
+		// 	}
 
-			r := insertBST(t, n);
+		// 	assert(n.PartialNoRR(r));
 
-			if(n.parent == null || n == r) {
-				assert(r.ValidRB());
-				return;
-			}
-
-			assert(n.PartialNoRR(r));
-
-			while(true) {
-				break;
-			}
-		}
+		// 	while(true) {
+		// 		break;
+		// 	}
+		// }
 
 		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
 			requires n.parent == null
@@ -253,9 +244,8 @@ class RBTreeRef {
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
-			ensures n.parent != null ==> n in r.ElemsRef() && n.PartialNoRR(r)
-			// ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
-			// ensures n.parent != null ==> n.value !in old(ElemsN(t))
+			ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r))
+			ensures t == r ==> t.color == old(t.color)
 			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
 			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
       decreases ReprN(t)
@@ -288,12 +278,12 @@ class RBTreeRef {
 				}
 
 				if(n.parent != null){
-					// assert(n in newLeft.ElemsRef());
-					// assume(n.PartialNoRR(newLeft));
 					ElemsRefTrans(n,newLeft,r);
-					// assert(newLeft.PartialNoRR(r));
-					partialNoRRTrans(n,newLeft,r);
-					assert(n.PartialNoRR(r));
+					if(n != newLeft) {
+						partialNoRRTrans(n.parent,newLeft,r);
+					}
+
+				assert(n.parent in r.ElemsRef());
 				}
 				return;
 			}
@@ -309,12 +299,10 @@ class RBTreeRef {
 
 
 				if(n.parent != null){
-					// assert(n in newRight.ElemsRef());
-					// assume(n.PartialNoRR(newRight));
 					ElemsRefTrans(n,newRight,r);
-					// assert(newRight.PartialNoRR(r));
-					partialNoRRTrans(n,newRight,r);
-					// assert(n.PartialNoRR(r));
+					if(n != newRight) {
+						partialNoRRTrans(n.parent,newRight,r);
+					}
 				}
 				return;
 			}
@@ -392,12 +380,12 @@ predicate isOrdered(t : RBTree) {
 
 
 predicate noRedRedR(t : RBTree) {
-	(isRed(t) ==> !isRed(t.right)) &&
+	(isRed(t) ==> !isRed(t.left) && !isRed(t.right)) &&
 		(t.Node? ==> noRedRed(t.right))
 }
 
 predicate noRedRedL(t : RBTree) {
-  (isRed(t) ==> !isRed(t.left)) &&
+  (isRed(t) ==> !isRed(t.left) && !isRed(t.left)) &&
 		(t.Node? ==> noRedRed(t.left))
 }
 
