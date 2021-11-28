@@ -220,6 +220,7 @@ class RBTreeRef {
 
 			assert(n.parent.PartialNoRR(r));
 			assert(n.ValidRB());
+			assert(n in r.ElemsRef());
 
 			while(true) {
 				break;
@@ -242,6 +243,7 @@ class RBTreeRef {
 			ensures t != null ==> t.parent == old(t.parent)
 			ensures n.ValidRB()
 			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
+			ensures ElemsN(r) == ElemsN(t) + {n.value}
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
