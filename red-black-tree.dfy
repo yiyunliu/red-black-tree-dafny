@@ -222,15 +222,16 @@ class RBTreeRef {
 
 			r := insertBST(t, n);
 
-			if(n.parent == null) {
+			if(n.parent == null || n == r) {
+				assert(r.ValidRB());
 				return;
 			}
 
-			
+			assert(n.PartialNoRR(r));
 
-			// while(true) {
-			// 	break;
-			// }
+			while(true) {
+				break;
+			}
 		}
 
 		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
@@ -252,8 +253,10 @@ class RBTreeRef {
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
-			ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
-			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) && n.value in old(ElemsN(t)) &&
+			ensures n.parent != null ==> n in r.ElemsRef() && n.PartialNoRR(r)
+			// ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
+			// ensures n.parent != null ==> n.value !in old(ElemsN(t))
+			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
 			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
       decreases ReprN(t)
 		{
@@ -284,7 +287,7 @@ class RBTreeRef {
 					n.parent := t;
 				}
 
-				if(n.value !in old(ElemsN(t))){
+				if(n.parent != null){
 					// assert(n in newLeft.ElemsRef());
 					// assume(n.PartialNoRR(newLeft));
 					ElemsRefTrans(n,newLeft,r);
@@ -305,7 +308,7 @@ class RBTreeRef {
 				}
 
 
-				if(n.value !in old(ElemsN(t))){
+				if(n.parent != null){
 					// assert(n in newRight.ElemsRef());
 					// assume(n.PartialNoRR(newRight));
 					ElemsRefTrans(n,newRight,r);
