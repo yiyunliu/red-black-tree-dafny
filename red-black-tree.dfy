@@ -195,35 +195,36 @@ class RBTreeRef {
 		}
 
     // http://leino.science/papers/krml273.html
-		// static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
-		// 	requires t != null ==> t.ValidRB()
-		// 	ensures r.Valid()
-		// 	modifies if t != null then t.Repr else {}
-		// {
-    // 	var n := new RBTreeRef;
-		// 	n.Tree := Node(Red,v,Empty,Empty);
-		// 	n.Repr := {n};
-		// 	n.value := v;
-		// 	n.left := null;
-		// 	n.right := null;
-		// 	n.color := Red;
-		// 	n.parent := null;
+		static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
+			requires t != null ==> t.ValidRB()
+			ensures r.Valid()
+			modifies if t != null then t.Repr else {}
+		{
+    	var n := new RBTreeRef;
+			n.Tree := Node(Red,v,Empty,Empty);
+			n.Repr := {n};
+			n.value := v;
+			n.left := null;
+			n.right := null;
+			n.color := Red;
+			n.parent := null;
 
-		// 	assert(n.ValidRB());
+			assert(n.ValidRB());
 
-		// 	r := insertBST(t, n);
+			r := insertBST(t, n);
 
-		// 	if(n.parent == null || n == r) {
-		// 		assert(r.ValidRB());
-		// 		return;
-		// 	}
+			if(n.parent == null || n == r) {
+				assert(r.ValidRB());
+				return;
+			}
 
-		// 	assert(n.PartialNoRR(r));
+			assert(n.parent.PartialNoRR(r));
+			assert(n.ValidRB());
 
-		// 	while(true) {
-		// 		break;
-		// 	}
-		// }
+			while(true) {
+				break;
+			}
+		}
 
 		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
 			requires n.parent == null
