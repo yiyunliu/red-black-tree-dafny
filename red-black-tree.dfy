@@ -197,11 +197,46 @@ class RBTreeRef {
     // http://leino.science/papers/krml273.html
 		static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
 			requires t != null ==> t.ValidRB()
+			ensures r.Valid()
+			modifies if t != null then t.Repr else {}
 		{
-			
+ 	// ghost var Tree : RBTree
+	// 	ghost var Repr : set<RBTreeRef>
+	// 	var value: int
+	// 	var left: RBTreeRef?
+	// 	var right: RBTreeRef?
+	// 	var parent: RBTreeRef?
+	// 	var color: Color
+
+
+    	var n := new RBTreeRef;
+			n.Tree := Node(Red,v,Empty,Empty);
+			n.Repr := {n};
+			n.value := v;
+			n.left := null;
+			n.right := null;
+			n.color := Red;
+			n.parent := null;
+
+			assert(n.ValidRB());
+
+			r := insertBST(t, n);
+
+			if(n.parent == null) {
+				if (n == r){
+				  assert(r.ValidRB());
+				}
+				else {
+					assert(r.ValidRB());
+				}
+			}
+
+			// while(true) {
+			// 	break;
+			// }
 		}
-		
-		static method insertBST(t : RBTreeRef, n : RBTreeRef) returns (r : RBTreeRef)
+
+		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
 			requires n.parent == null
 			requires n.Repr == {n}
 			requires n !in ReprN(t)
@@ -210,17 +245,19 @@ class RBTreeRef {
 			requires elems(n.Tree)=={n.value}
 			requires n.color == Red
 
-  		modifies if t != null then t.Repr else {}
+ 			modifies if t != null then t.Repr else {}
 			modifies n`parent
 				
   		ensures if t == null then r == n else r == t
 			ensures t != null ==> t.parent == old(t.parent)
-			ensures n.Valid()
+			ensures n.ValidRB()
 			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
 			ensures old(countBlackN(t)) == countBlackN(r)
 			ensures t != null ==> old(t.Repr) + {n} == r.Repr
 			ensures r.Valid()
 			ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
+			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
+			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
       decreases ReprN(t)
 		{
 
