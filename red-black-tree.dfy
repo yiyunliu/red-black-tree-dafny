@@ -127,76 +127,122 @@ class RBTreeRef {
 				(this.parent.right == this ==> noRedRedL(this.parent.Tree))
 		}
 
-    // http://leino.science/papers/krml273.html
-		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
-			// requires t != null ==> root != null && root.Valid() && t in root.ElemsRef()
-			// requires root != null ==> (root.Valid() && (t != null ==> t in root.ElemsRef()))
 
 
-			// try this: forall i in children(r), i != r ==> ... 
-			requires n.parent == null
-			requires n.Repr == {n}
-			requires n !in ReprN(t)
-			requires t != null ==> t.Valid()
-			requires n.Valid()
-			requires elems(n.Tree)=={n.value}
-			requires n.color == Red
-
-  		modifies if t != null then t.Repr else {}
-			modifies n`parent
-			
-  		ensures if t == null then r == n else r == t
-			ensures t != null ==> t.parent == old(t.parent)
-			ensures n.Valid()
-			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
-			ensures old(countBlackN(t)) == countBlackN(r)
-			ensures t != null ==> old(t.Repr) + {n} == r.Repr
-			ensures r.Valid()
-			ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
-      decreases ReprN(t)
+		static ghost method ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+			requires r1.Valid()
+			requires r2.Valid()
+			requires r0 in r1.ElemsRef()
+			requires r1 in r2.ElemsRef()
+			decreases r2.Repr
+			ensures r0 in r2.ElemsRef()
 		{
-
-			if (t == null) {
-				r := n;
+			if (r1 == r2) {
+				assert(r0 in r2.ElemsRef());
 				return;
 			}
 
-			r := t;
-
-			if (t.value == n.value) {
-				t.Repr := t.Repr + {n};
+			if (r2.left == null || r1 !in r2.left.ElemsRef()) {
+				assert(r1 in r2.right.ElemsRef());
+				ElemsRefTrans(r0,r1,r2.right);
 				return;
 			}
 
+			ElemsRefTrans(r0,r1,r2.left);
 
-			// n.parent doesn't work because dafny doesn't know n remains the same
 
-			if (n.value < t.value) {
-
-				var newLeft := insertBST(t.left, n);
-				r.Repr := r.Repr + {n};
-				r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
-				r.left := newLeft;
-				if(newLeft == n){
-					n.parent := t;
-				}
-				return;
-			}
-
-			if (n.value > t.value) {
-				var newRight := insertBST(t.right, n);
-				r.Repr := r.Repr + {n};
-				r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
-				r.right := newRight;
-				if(newRight == n){
-					n.parent := t;
-				}
-				return;
-			}
-			
-			assert(false);
-
+			// assert()
+			// if (r0 != r1) {
+			// 	assert(r0.parent != null);
+			// 	return;
+			// 		// assert(r2.left in r2.ElemsRef());
+			// 		// assert(r0 in r0.parent.ElemsRefTrans());
+ 			// 		// ElemsRefTrans(r0.parent, r1, r2);
+			// 	}
 		}
+
+		// static ghost method partialNoRRTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+		// 	requires r1.Valid()
+		// 	requires r2.Valid()
+		// 	requires r0 in r1.ElemsRef()
+		// 	requires r1 in r2.ElemsRef()
+		// 	requires r0.PartialNoRR(r1)
+		// 	requires r1.PartialNoRR(r2)
+		// 	ensures r0.PartialNoRR(r2)
+		// {
+		// 	assert(r1 != r2);
+		// }
+
+    // http://leino.science/papers/krml273.html
+		// static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
+		// 	// requires t != null ==> root != null && root.Valid() && t in root.ElemsRef()
+		// 	// requires root != null ==> (root.Valid() && (t != null ==> t in root.ElemsRef()))
+
+
+		// 	// try this: forall i in children(r), i != r ==> ... 
+		// 	requires n.parent == null
+		// 	requires n.Repr == {n}
+		// 	requires n !in ReprN(t)
+		// 	requires t != null ==> t.Valid()
+		// 	requires n.Valid()
+		// 	requires elems(n.Tree)=={n.value}
+		// 	requires n.color == Red
+
+  	// 	modifies if t != null then t.Repr else {}
+		// 	modifies n`parent
+			
+  	// 	ensures if t == null then r == n else r == t
+		// 	ensures t != null ==> t.parent == old(t.parent)
+		// 	ensures n.Valid()
+		// 	ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
+		// 	ensures old(countBlackN(t)) == countBlackN(r)
+		// 	ensures t != null ==> old(t.Repr) + {n} == r.Repr
+		// 	ensures r.Valid()
+		// 	ensures n.value !in old(ElemsN(t)) ==> n in r.ElemsRef() && n.PartialNoRR(r)
+    //   decreases ReprN(t)
+		// {
+
+		// 	if (t == null) {
+		// 		r := n;
+		// 		return;
+		// 	}
+
+		// 	r := t;
+
+		// 	if (t.value == n.value) {
+		// 		t.Repr := t.Repr + {n};
+		// 		return;
+		// 	}
+
+
+		// 	// n.parent doesn't work because dafny doesn't know n remains the same
+
+		// 	if (n.value < t.value) {
+
+		// 		var newLeft := insertBST(t.left, n);
+		// 		r.Repr := r.Repr + {n};
+		// 		r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
+		// 		r.left := newLeft;
+		// 		if(newLeft == n){
+		// 			n.parent := t;
+		// 		}
+		// 		return;
+		// 	}
+
+		// 	if (n.value > t.value) {
+		// 		var newRight := insertBST(t.right, n);
+		// 		r.Repr := r.Repr + {n};
+		// 		r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
+		// 		r.right := newRight;
+		// 		if(newRight == n){
+		// 			n.parent := t;
+		// 		}
+		// 		return;
+		// 	}
+			
+		// 	assert(false);
+
+		// }
 
 		// static method getGrandparent(t : RBTreeRef?) returns (g : RBTreeRef?)
 
