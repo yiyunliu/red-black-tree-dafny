@@ -114,16 +114,10 @@ class RBTreeRef {
 			requires n.color == Red
 
   		modifies if t != null then t.Repr else {}
- 			modifies n
+			modifies n`parent
 			
   		ensures if t == null then r == n else r == t
 			ensures t != null ==> t.parent == old(t.parent)
-			ensures n == old(n)
-			ensures n.value == old(n.value)
-			ensures n.color == old(n.color)
-			ensures n.left == null
-			ensures n.right == null
-			ensures n.Repr == {n}
 			ensures n.Valid()
 			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
 			ensures old(countBlackN(t)) == countBlackN(r)
