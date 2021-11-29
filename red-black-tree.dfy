@@ -251,6 +251,8 @@ class RBTreeRef {
 			}
 
 			// while(true)
+
+			// DROP r.Valid and strengthen 
 			// 	invariant r.Valid()
 			// 	invariant ElemsN(r) == ElemsN(t) + {v}
 			// 	invariant n in r.ElemsRef()
@@ -302,10 +304,13 @@ class RBTreeRef {
 					assert(noRedRed(uncle.Tree));
 					assert(uncle.ValidRB());
 					assert(uncle.Tree.Node?);
+					assert(uncle != n.parent);
+					assert(uncle.parent == n.parent.parent);
 					assert(n.parent.parent.Valid());
 					assert(n.parent.parent.Tree.Node?);
 					assert(n.parent.Valid());
 					assert(n.parent.Tree.Node?);
+					label L1:
 					uncle.color := Black;
 					uncle.Tree := uncle.Tree.(color := Black);
 					n.parent.color := Black;
@@ -313,14 +318,39 @@ class RBTreeRef {
 					assert(n.parent.ValidRB());
 					assert(uncle.ValidRB());
 					n.parent.parent.color := Red;
-					n.parent.parent.Tree := n.parent.parent.Tree.(color := Red,
-						left := n.parent.Tree,
-						right := uncle.Tree);
-						assert(n.parent.parent.Tree.value==old(n.parent.parent.Tree.value));
-						assert(n.parent.parent.Tree.right.value==old(n.parent.parent.Tree.right.value));
-						assert(n.parent.parent.Tree.left.value==old(n.parent.parent.Tree.left.value));
+					assert(if isLeft then n.parent.parent.left == n.parent else n.parent.parent.left == uncle);
+					if isLeft {
+						n.parent.parent.Tree := n.parent.parent.Tree.(color := Red,
+							left := n.parent.Tree,
+							right := uncle.Tree);
+							// assert(n.parent.parent.value == n.parent.parent.Tree.value);
+							// assert(n.parent.value == n.parent.Tree.value);
+							// assert(uncle.value == uncle.Tree.value);
+
+							// assert(n.parent.parent.value > n.parent.value);
+							// assert(n.parent.parent.value < uncle.value);
+							// assert(n.parent.parent.Tree.left == n.parent.Tree);
+							// assert(n.parent.parent.Tree.right == uncle.Tree);
+					}
+					else {
+						n.parent.parent.Tree := n.parent.parent.Tree.(color := Red,
+							left := uncle.Tree,
+							right := n.parent.Tree);
+					}
+
+					assert(old@L1(ElemsN(n.parent))==ElemsN(n.parent));
+					assert(old@L1(ElemsN(uncle))==ElemsN(uncle));
+					assert(old@L1(n.parent.value)==n.parent.value);
+					assert(old@L1(uncle.value)==uncle.value);
+
+					assert(n.parent.parent.ValidRB());
+							// assert(isOrdered(n.parent.parent.Tree));
+
+					
+						// assume(n.parent.parent.Tree.value> n.parent.Tree.value);
+						// assume(n.parent.parent.Tree.value==old(n.parent.parent.Tree.left.value));
 						// assert(n.parent.)
-					assert(isOrdered(n.parent.parent.Tree));
+					
 					// assert(noRedRed(n.parent.parent.Tree));
 					// assert(n.parent.parent.Valid());
 					// assert(n.parent.parent.ValidRB());
