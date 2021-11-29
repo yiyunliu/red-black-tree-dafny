@@ -10,11 +10,40 @@ function method elems(t : RBTree) : set<int> {
 	if t == Empty then {} else {t.value} + elems(t.left) + elems(t.right)
 }
 
-method testHigher (f : int -> int)
-	requires forall x :: f(x) == 1 + x
-	ensures forall x :: f(x) - 1 == x
+
+twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
+	requires forall o :: o != y ==> unchanged(o)
+	requires y.left == old(y.left)
+	requires y.right == old(y.right)
+	requires y.parent == old(y.parent)
+	requires y.Repr == old(y.Repr)
+	requires old(x.ValidWeak())
+	requires old(y in x.ElemsRef())
+	ensures x.ValidWeak()
+	ensures y in x.ElemsRef() 
+	decreases old(x.Repr)
 {
+	if(x==y) {
+		return;
+	}
+	if(x.left != null && old(y in x.left.ElemsRef())) {
+		ValidFix(x.left, y);
+	}
+	else {
+		ValidFix(x.right, y);
+	}
 }
+
+// method testHigher (f : int -> int)
+// 	requires forall x :: f(x) == 1 + x
+// 	ensures forall x :: f(x) - 1 == x
+// {
+// 	var n := new RBTreeRef;
+// 	var m := new RBTreeRef;
+// 		label L0:
+// 		n.value := 4;
+// 		assert(forall o :: o != n ==> unchanged@L0(o));
+// }
 
 
 class RBTreeRef {
@@ -166,39 +195,21 @@ class RBTreeRef {
 				{this} + (if left == null then {} else left.ElemsRef()) + (if right == null then {} else right.ElemsRef())
 		}
 
-		function AncestorsRef () : set<RBTreeRef>
-			decreases this.ReprP
-			reads this, this.ReprP
-			requires this.ValidWeakP()
-			ensures this.AncestorsRef() <= this.ReprP
+		// function AncestorsRef () : set<RBTreeRef>
+		// 	decreases this.ReprP
+		// 	reads this, this.ReprP
+		// 	requires this.ValidWeakP()
+		// 	ensures this.AncestorsRef() <= this.ReprP
 			
-			// ensures this.ElemsRef() <= this.Repr
-			ensures forall i :: i in AncestorsRef() ==> i.ValidWeakP() && i in this.ReprP
-			// ensures forall i :: i in AncestorsRef() && i != this ==> i.ReprP < ReprP &&  i.parent != null && i.parent in AncestorsRef() && i.ReprP < i.parent.ReprP
-		{
-			{this} + (if parent == null then {} else parent.AncestorsRef())
-		}
+		// 	// ensures this.ElemsRef() <= this.Repr
+		// 	ensures forall i :: i in AncestorsRef() ==> i.ValidWeakP() && i in this.ReprP
+		// 	// ensures forall i :: i in AncestorsRef() && i != this ==> i.ReprP < ReprP &&  i.parent != null && i.parent in AncestorsRef() && i.ReprP < i.parent.ReprP
+		// {
+		// 	{this} + (if parent == null then {} else parent.AncestorsRef())
+		// }
 
 
 		
-
-		predicate PartialNoRRV2 (root : RBTreeRef)
-			reads this, this.ReprP
-			requires this.ValidWeakP()
-			requires root in this.AncestorsRef()
-			decreases this.ReprP
-		{
-			true
-			// this.parent != null ==>
-			// this != root ==>
-			// 	this.parent.PartialNoRR(root) &&
-      //   this.parent.Valid() &&
-			// 	(this.parent.left == this || this.parent.right == this) &&
-			// 	(this.parent.left == this ==> noRedRedR(this.parent.Tree) && (this.parent.right == null || this.parent.right.ValidRB())) &&
-			// 	(this.parent.right == this ==> noRedRedL(this.parent.Tree) && (this.parent.left == null || this.parent.left.ValidRB()))
-		}
-
-
 
 		predicate PartialNoRR (root : RBTreeRef)
 			reads root, root.Repr
@@ -209,88 +220,88 @@ class RBTreeRef {
 			// this.parent != null ==>
 			this != root ==>
 				this.parent.PartialNoRR(root) &&
-        this.parent.Valid() &&
+        // this.parent.Valid() &&
 				(this.parent.left == this || this.parent.right == this) &&
 				(this.parent.left == this ==> noRedRedR(this.parent.Tree) && (this.parent.right == null || this.parent.right.ValidRB())) &&
 				(this.parent.right == this ==> noRedRedL(this.parent.Tree) && (this.parent.left == null || this.parent.left.ValidRB()))
 		}
 
 
-		predicate PartialNoRRP ()
-			reads this.parent
-			reads this
-			requires this.parent != null
-		{
-			  this.parent.Valid() &&
-			  (this.parent.left == this || this.parent.right == this) &&
-				(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
-				(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
-		}
+		// predicate PartialNoRRP ()
+		// 	reads this.parent
+		// 	reads this
+		// 	requires this.parent != null
+		// {
+		// 	  // this.parent.Valid() &&
+		// 	  (this.parent.left == this || this.parent.right == this) &&
+		// 		(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
+		// 		(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
+		// }
 
 
-		static lemma CombineNoRR(r0 : RBTreeRef, r1 : RBTreeRef)
-			requires r0.ValidRB()
-			requires r1.Valid()
-			requires r0 in r1.ElemsRef()
-			requires r0.PartialNoRR(r1)
-			ensures r1.ValidRB()
-			decreases r1.Repr - r0.Repr
-		{
-			if (r0 == r1) {
-				assert(r1.ValidRB());
-				return;
-			}
+		// static lemma CombineNoRR(r0 : RBTreeRef, r1 : RBTreeRef)
+		// 	requires r0.ValidRB()
+		// 	requires r1.Valid()
+		// 	requires r0 in r1.ElemsRef()
+		// 	requires r0.PartialNoRR(r1)
+		// 	ensures r1.ValidRB()
+		// 	decreases r1.Repr - r0.Repr
+		// {
+		// 	if (r0 == r1) {
+		// 		assert(r1.ValidRB());
+		// 		return;
+		// 	}
 
-			assert(r0.parent.ValidRB());
-			assert(r0.parent.PartialNoRR(r1));
-			CombineNoRR(r0.parent, r1);
-		}
+		// 	assert(r0.parent.ValidRB());
+		// 	assert(r0.parent.PartialNoRR(r1));
+		// 	CombineNoRR(r0.parent, r1);
+		// }
 
 
-		static lemma ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
-			requires r1.Valid()
-			requires r2.Valid()
-			requires r0 in r1.ElemsRef()
-			requires r1 in r2.ElemsRef()
-			decreases r2.Repr
-			ensures r0 in r2.ElemsRef()
-		{
-			if (r1 == r2) {
-				assert(r0 in r2.ElemsRef());
-				return;
-			}
+		// static lemma ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+		// 	requires r1.Valid()
+		// 	requires r2.Valid()
+		// 	requires r0 in r1.ElemsRef()
+		// 	requires r1 in r2.ElemsRef()
+		// 	decreases r2.Repr
+		// 	ensures r0 in r2.ElemsRef()
+		// {
+		// 	if (r1 == r2) {
+		// 		assert(r0 in r2.ElemsRef());
+		// 		return;
+		// 	}
 
-			if (r2.left == null || r1 !in r2.left.ElemsRef()) {
-				assert(r1 in r2.right.ElemsRef());
-				ElemsRefTrans(r0,r1,r2.right);
-				return;
-			}
+		// 	if (r2.left == null || r1 !in r2.left.ElemsRef()) {
+		// 		assert(r1 in r2.right.ElemsRef());
+		// 		ElemsRefTrans(r0,r1,r2.right);
+		// 		return;
+		// 	}
 
-			ElemsRefTrans(r0,r1,r2.left);
-		}
+		// 	ElemsRefTrans(r0,r1,r2.left);
+		// }
 
-		// use convert?
-		static ghost method partialNoRRTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
-			requires r1.Valid()
-			requires r2.Valid()
-			decreases r1.Repr - r0.Repr
-			requires r0 in r1.ElemsRef()
-			requires r1 in r2.ElemsRef()
-			requires r0 in r2.ElemsRef()
-			requires r0.PartialNoRR(r1)
-			requires r1.PartialNoRR(r2)
-			ensures r0.PartialNoRR(r2)
-			{
-				if(r0==r1) {
-					assert(r0.PartialNoRR(r2));
-					return;
-				}
+		// // use convert?
+		// static ghost method partialNoRRTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+		// 	requires r1.Valid()
+		// 	requires r2.Valid()
+		// 	decreases r1.Repr - r0.Repr
+		// 	requires r0 in r1.ElemsRef()
+		// 	requires r1 in r2.ElemsRef()
+		// 	requires r0 in r2.ElemsRef()
+		// 	requires r0.PartialNoRR(r1)
+		// 	requires r1.PartialNoRR(r2)
+		// 	ensures r0.PartialNoRR(r2)
+		// 	{
+		// 		if(r0==r1) {
+		// 			assert(r0.PartialNoRR(r2));
+		// 			return;
+		// 		}
 
-				assert(r0.parent in r1.ElemsRef());
-				assert(r0.parent.PartialNoRR(r1));
-				partialNoRRTrans(r0.parent, r1, r2);
-			// assert(r1 != r2);
-		}
+		// 		assert(r0.parent in r1.ElemsRef());
+		// 		assert(r0.parent.PartialNoRR(r1));
+		// 		partialNoRRTrans(r0.parent, r1, r2);
+		// 	// assert(r1 != r2);
+		// }
 
     // http://leino.science/papers/krml273.html
 		// static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
