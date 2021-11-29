@@ -34,20 +34,8 @@ twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
 	}
 }
 
-// method testHigher (f : int -> int)
-// 	requires forall x :: f(x) == 1 + x
-// 	ensures forall x :: f(x) - 1 == x
-// {
-// 	var n := new RBTreeRef;
-// 	var m := new RBTreeRef;
-// 		label L0:
-// 		n.value := 4;
-// 		assert(forall o :: o != n ==> unchanged@L0(o));
-// }
-
 
 class RBTreeRef {
-	ghost var ReprP : set<RBTreeRef>
  	ghost var Tree : RBTree
 		ghost var Repr : set<RBTreeRef>
 		var value: int
@@ -55,13 +43,6 @@ class RBTreeRef {
 		var right: RBTreeRef?
 		var parent: RBTreeRef?
 		var color: Color
-		
-		predicate ValidWeakP()
-			reads this, ReprP{
-				this in ReprP &&
-					(parent != null ==> parent in ReprP && parent.ReprP <= ReprP && this !in parent.ReprP && parent.ValidWeakP())
-		}
-
 		
 		
 		// termination metric
@@ -217,91 +198,88 @@ class RBTreeRef {
 			requires this in root.ElemsRef()
 			decreases root.Repr - this.Repr
 		{
-			// this.parent != null ==>
 			this != root ==>
 				this.parent.PartialNoRR(root) &&
-        // this.parent.Valid() &&
 				(this.parent.left == this || this.parent.right == this) &&
-				(this.parent.left == this ==> noRedRedR(this.parent.Tree) && (this.parent.right == null || this.parent.right.ValidRB())) &&
-				(this.parent.right == this ==> noRedRedL(this.parent.Tree) && (this.parent.left == null || this.parent.left.ValidRB()))
+				(this.parent.left == this ==> noRedRedR(this.parent.Tree)) &&
+				(this.parent.right == this ==> noRedRedL(this.parent.Tree))
 		}
 
 
-		// predicate PartialNoRRP ()
-		// 	reads this.parent
-		// 	reads this
-		// 	requires this.parent != null
-		// {
-		// 	  // this.parent.Valid() &&
-		// 	  (this.parent.left == this || this.parent.right == this) &&
-		// 		(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
-		// 		(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
-		// }
+		predicate PartialNoRRP ()
+			reads this.parent
+			reads this
+			requires this.parent != null
+		{
+			  (this.parent.left == this || this.parent.right == this) &&
+				(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
+				(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
+		}
 
 
-		// static lemma CombineNoRR(r0 : RBTreeRef, r1 : RBTreeRef)
-		// 	requires r0.ValidRB()
-		// 	requires r1.Valid()
-		// 	requires r0 in r1.ElemsRef()
-		// 	requires r0.PartialNoRR(r1)
-		// 	ensures r1.ValidRB()
-		// 	decreases r1.Repr - r0.Repr
-		// {
-		// 	if (r0 == r1) {
-		// 		assert(r1.ValidRB());
-		// 		return;
-		// 	}
+		static lemma CombineNoRR(r0 : RBTreeRef, r1 : RBTreeRef)
+			requires r0.ValidRB()
+			requires r1.Valid()
+			requires r0 in r1.ElemsRef()
+			requires r0.PartialNoRR(r1)
+			ensures r1.ValidRB()
+			decreases r1.Repr - r0.Repr
+		{
+			if (r0 == r1) {
+				assert(r1.ValidRB());
+				return;
+			}
 
-		// 	assert(r0.parent.ValidRB());
-		// 	assert(r0.parent.PartialNoRR(r1));
-		// 	CombineNoRR(r0.parent, r1);
-		// }
+			assert(r0.parent.ValidRB());
+			assert(r0.parent.PartialNoRR(r1));
+			CombineNoRR(r0.parent, r1);
+		}
 
 
-		// static lemma ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
-		// 	requires r1.Valid()
-		// 	requires r2.Valid()
-		// 	requires r0 in r1.ElemsRef()
-		// 	requires r1 in r2.ElemsRef()
-		// 	decreases r2.Repr
-		// 	ensures r0 in r2.ElemsRef()
-		// {
-		// 	if (r1 == r2) {
-		// 		assert(r0 in r2.ElemsRef());
-		// 		return;
-		// 	}
+		static lemma ElemsRefTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+			requires r1.Valid()
+			requires r2.Valid()
+			requires r0 in r1.ElemsRef()
+			requires r1 in r2.ElemsRef()
+			decreases r2.Repr
+			ensures r0 in r2.ElemsRef()
+		{
+			if (r1 == r2) {
+				assert(r0 in r2.ElemsRef());
+				return;
+			}
 
-		// 	if (r2.left == null || r1 !in r2.left.ElemsRef()) {
-		// 		assert(r1 in r2.right.ElemsRef());
-		// 		ElemsRefTrans(r0,r1,r2.right);
-		// 		return;
-		// 	}
+			if (r2.left == null || r1 !in r2.left.ElemsRef()) {
+				assert(r1 in r2.right.ElemsRef());
+				ElemsRefTrans(r0,r1,r2.right);
+				return;
+			}
 
-		// 	ElemsRefTrans(r0,r1,r2.left);
-		// }
+			ElemsRefTrans(r0,r1,r2.left);
+		}
 
 		// // use convert?
-		// static ghost method partialNoRRTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
-		// 	requires r1.Valid()
-		// 	requires r2.Valid()
-		// 	decreases r1.Repr - r0.Repr
-		// 	requires r0 in r1.ElemsRef()
-		// 	requires r1 in r2.ElemsRef()
-		// 	requires r0 in r2.ElemsRef()
-		// 	requires r0.PartialNoRR(r1)
-		// 	requires r1.PartialNoRR(r2)
-		// 	ensures r0.PartialNoRR(r2)
-		// 	{
-		// 		if(r0==r1) {
-		// 			assert(r0.PartialNoRR(r2));
-		// 			return;
-		// 		}
+		static ghost method partialNoRRTrans(r0 : RBTreeRef, r1 : RBTreeRef, r2 : RBTreeRef)
+			requires r1.Valid()
+			requires r2.Valid()
+			decreases r1.Repr - r0.Repr
+			requires r0 in r1.ElemsRef()
+			requires r1 in r2.ElemsRef()
+			requires r0 in r2.ElemsRef()
+			requires r0.PartialNoRR(r1)
+			requires r1.PartialNoRR(r2)
+			ensures r0.PartialNoRR(r2)
+			{
+				if(r0==r1) {
+					assert(r0.PartialNoRR(r2));
+					return;
+				}
 
-		// 		assert(r0.parent in r1.ElemsRef());
-		// 		assert(r0.parent.PartialNoRR(r1));
-		// 		partialNoRRTrans(r0.parent, r1, r2);
-		// 	// assert(r1 != r2);
-		// }
+				assert(r0.parent in r1.ElemsRef());
+				assert(r0.parent.PartialNoRR(r1));
+				partialNoRRTrans(r0.parent, r1, r2);
+			// assert(r1 != r2);
+		}
 
     // http://leino.science/papers/krml273.html
 		// static method insert(t : RBTreeRef?, v : int) returns (r : RBTreeRef)
@@ -458,92 +436,92 @@ class RBTreeRef {
 		// 	}
 		// }
 
-		// static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
-		// 	requires n.parent == null
-		// 	requires n.Repr == {n}
-		// 	requires n !in ReprN(t)
-		// 	requires t != null ==> t.ValidRB()
-		// 	requires n.Valid()
-		// 	requires elems(n.Tree)=={n.value}
-		// 	requires n.color == Red
+		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
+			requires n.parent == null
+			requires n.Repr == {n}
+			requires n !in ReprN(t)
+			requires t != null ==> t.ValidRB()
+			requires n.Valid()
+			requires elems(n.Tree)=={n.value}
+			requires n.color == Red
 
- 		// 	modifies if t != null then t.Repr else {}
-		// 	modifies n`parent
+ 			modifies if t != null then t.Repr else {}
+			modifies n`parent
 				
-  	// 	ensures if t == null then r == n else r == t
-		// 	ensures t != null ==> t.parent == old(t.parent)
-		// 	ensures n.ValidRB()
-		// 	ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
-		// 	ensures ElemsN(r) == ElemsN(t) + {n.value}
-		// 	ensures old(countBlackN(t)) == countBlackN(r)
-		// 	ensures t != null ==> old(t.Repr) + {n} == r.Repr
-		// 	ensures r.Valid()
-		// 	ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r)) && n.PartialNoRRP()
-		// 	ensures t == r ==> t.color == old(t.color)
-		// 	ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
-		// 	          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
-    //   decreases ReprN(t)
-		// {
+  		ensures if t == null then r == n else r == t
+			ensures t != null ==> t.parent == old(t.parent)
+			ensures n.ValidRB()
+			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
+			ensures ElemsN(r) == ElemsN(t) + {n.value}
+			ensures old(countBlackN(t)) == countBlackN(r)
+			ensures t != null ==> old(t.Repr) + {n} == r.Repr
+			ensures r.Valid()
+			ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r)) && n.PartialNoRRP()
+			ensures t == r ==> t.color == old(t.color)
+			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
+			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
+      decreases ReprN(t)
+		{
 
-		// 	if (t == null) {
-		// 		r := n;
-		// 		return;
-		// 	}
+			if (t == null) {
+				r := n;
+				return;
+			}
 
-		// 	r := t;
+			r := t;
 
-		// 	if (t.value == n.value) {
-		// 		t.Repr := t.Repr + {n};
-		// 		return;
-		// 	}
-
-
-		// 	// n.parent doesn't work because dafny doesn't know n remains the same
-
-		// 	if (n.value < t.value) {
-
-		// 		var newLeft := insertBST(t.left, n);
-
-		// 		r.Repr := r.Repr + {n};
-		// 		r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
-		// 		r.left := newLeft;
-		// 		if(newLeft == n){
-		// 			n.parent := t;
-		// 		}
-
-		// 		if(n.parent != null){
-		// 			ElemsRefTrans(n,newLeft,r);
-		// 			if(n != newLeft) {
-		// 				partialNoRRTrans(n.parent,newLeft,r);
-		// 			}
-
-		// 		assert(n.parent in r.ElemsRef());
-		// 		}
-		// 		return;
-		// 	}
-
-		// 	if (n.value > t.value) {
-		// 		var newRight := insertBST(t.right, n);
-		// 		r.Repr := r.Repr + {n};
-		// 		r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
-		// 		r.right := newRight;
-		// 		if(newRight == n){
-		// 			n.parent := t;
-		// 		}
+			if (t.value == n.value) {
+				t.Repr := t.Repr + {n};
+				return;
+			}
 
 
-		// 		if(n.parent != null){
-		// 			ElemsRefTrans(n,newRight,r);
-		// 			if(n != newRight) {
-		// 				partialNoRRTrans(n.parent,newRight,r);
-		// 			}
-		// 		}
-		// 		return;
-		// 	}
+			// n.parent doesn't work because dafny doesn't know n remains the same
+
+			if (n.value < t.value) {
+
+				var newLeft := insertBST(t.left, n);
+
+				r.Repr := r.Repr + {n};
+				r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
+				r.left := newLeft;
+				if(newLeft == n){
+					n.parent := t;
+				}
+
+				if(n.parent != null){
+					ElemsRefTrans(n,newLeft,r);
+					if(n != newLeft) {
+						partialNoRRTrans(n.parent,newLeft,r);
+					}
+
+				assert(n.parent in r.ElemsRef());
+				}
+				return;
+			}
+
+			if (n.value > t.value) {
+				var newRight := insertBST(t.right, n);
+				r.Repr := r.Repr + {n};
+				r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
+				r.right := newRight;
+				if(newRight == n){
+					n.parent := t;
+				}
+
+
+				if(n.parent != null){
+					ElemsRefTrans(n,newRight,r);
+					if(n != newRight) {
+						partialNoRRTrans(n.parent,newRight,r);
+					}
+				}
+				return;
+			}
 			
-		// 	assert(false);
+			assert(false);
 
-		// }
+		}
 
 		// static method getGrandparent(t : RBTreeRef?) returns (g : RBTreeRef?)
 
