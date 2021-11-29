@@ -12,15 +12,16 @@ function method elems(t : RBTree) : set<int> {
 
 
 twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
-	requires forall o :: o != y ==> unchanged(o)
-	requires y.left == old(y.left)
-	requires y.right == old(y.right)
 	requires y.parent == old(y.parent)
 	requires y.Repr == old(y.Repr)
+	requires y.ValidWeak()
 	requires old(x.ValidWeak())
 	requires old(y in x.ElemsRef())
+	requires old(y.ElemsRef()) == y.ElemsRef()
+	requires forall o :: o !in y.ElemsRef() ==> unchanged(o)
 	ensures x.ValidWeak()
-	ensures y in x.ElemsRef() 
+	ensures y in x.ElemsRef()
+	ensures y.ValidWeak()
 	decreases old(x.Repr)
 {
 	if(x==y) {
@@ -50,19 +51,11 @@ class RBTreeRef {
 			decreases Repr
   		reads this, Repr {
 				this in Repr &&
-					// Tree.Node? &&
-					// Tree.value == value &&
-					// Tree.color == color &&
-					// (left == null ==> Tree.left.Empty?) &&
-					// (right == null ==> Tree.right.Empty?) &&
 					(left != null ==> left in Repr && left.Repr <= Repr && this !in left.Repr &&
 					left.ValidWeak() && left.parent == this) &&
 					(right != null ==> right in Repr && right.Repr <= Repr && this !in right.Repr &&
 					right.ValidWeak() && right.parent == this) &&
 					(left != null && right != null ==> left.Repr * right.Repr == {}) // &&
-					// isWellFormed(Tree)
-					// isBalanced(Tree) &&
-					// isOrdered(Tree)
 		}
 
 
@@ -436,92 +429,92 @@ class RBTreeRef {
 		// 	}
 		// }
 
-		static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
-			requires n.parent == null
-			requires n.Repr == {n}
-			requires n !in ReprN(t)
-			requires t != null ==> t.ValidRB()
-			requires n.Valid()
-			requires elems(n.Tree)=={n.value}
-			requires n.color == Red
+		// static method insertBST(t : RBTreeRef?, n : RBTreeRef) returns (r : RBTreeRef)
+		// 	requires n.parent == null
+		// 	requires n.Repr == {n}
+		// 	requires n !in ReprN(t)
+		// 	requires t != null ==> t.ValidRB()
+		// 	requires n.Valid()
+		// 	requires elems(n.Tree)=={n.value}
+		// 	requires n.color == Red
 
- 			modifies if t != null then t.Repr else {}
-			modifies n`parent
+ 		// 	modifies if t != null then t.Repr else {}
+		// 	modifies n`parent
 				
-  		ensures if t == null then r == n else r == t
-			ensures t != null ==> t.parent == old(t.parent)
-			ensures n.ValidRB()
-			ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
-			ensures ElemsN(r) == ElemsN(t) + {n.value}
-			ensures old(countBlackN(t)) == countBlackN(r)
-			ensures t != null ==> old(t.Repr) + {n} == r.Repr
-			ensures r.Valid()
-			ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r)) && n.PartialNoRRP()
-			ensures t == r ==> t.color == old(t.color)
-			ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
-			          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
-      decreases ReprN(t)
-		{
+  	// 	ensures if t == null then r == n else r == t
+		// 	ensures t != null ==> t.parent == old(t.parent)
+		// 	ensures n.ValidRB()
+		// 	ensures t != null ==> old(ElemsN(t)) + {n.value} == ElemsN(t)
+		// 	ensures ElemsN(r) == ElemsN(t) + {n.value}
+		// 	ensures old(countBlackN(t)) == countBlackN(r)
+		// 	ensures t != null ==> old(t.Repr) + {n} == r.Repr
+		// 	ensures r.Valid()
+		// 	ensures n.parent != null ==> n in r.ElemsRef() && (n != r ==> n.parent.PartialNoRR(r)) && n.PartialNoRRP()
+		// 	ensures t == r ==> t.color == old(t.color)
+		// 	ensures (n.parent == null && n != r) ==> r == t && t.color == old(t.color) &&
+		// 	          t.value == old(t.value) && t.left == old(t.left) && t.right == old(t.right) && t.Tree == old(t.Tree)
+    //   decreases ReprN(t)
+		// {
 
-			if (t == null) {
-				r := n;
-				return;
-			}
+		// 	if (t == null) {
+		// 		r := n;
+		// 		return;
+		// 	}
 
-			r := t;
+		// 	r := t;
 
-			if (t.value == n.value) {
-				t.Repr := t.Repr + {n};
-				return;
-			}
-
-
-			// n.parent doesn't work because dafny doesn't know n remains the same
-
-			if (n.value < t.value) {
-
-				var newLeft := insertBST(t.left, n);
-
-				r.Repr := r.Repr + {n};
-				r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
-				r.left := newLeft;
-				if(newLeft == n){
-					n.parent := t;
-				}
-
-				if(n.parent != null){
-					ElemsRefTrans(n,newLeft,r);
-					if(n != newLeft) {
-						partialNoRRTrans(n.parent,newLeft,r);
-					}
-
-				assert(n.parent in r.ElemsRef());
-				}
-				return;
-			}
-
-			if (n.value > t.value) {
-				var newRight := insertBST(t.right, n);
-				r.Repr := r.Repr + {n};
-				r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
-				r.right := newRight;
-				if(newRight == n){
-					n.parent := t;
-				}
+		// 	if (t.value == n.value) {
+		// 		t.Repr := t.Repr + {n};
+		// 		return;
+		// 	}
 
 
-				if(n.parent != null){
-					ElemsRefTrans(n,newRight,r);
-					if(n != newRight) {
-						partialNoRRTrans(n.parent,newRight,r);
-					}
-				}
-				return;
-			}
+		// 	// n.parent doesn't work because dafny doesn't know n remains the same
+
+		// 	if (n.value < t.value) {
+
+		// 		var newLeft := insertBST(t.left, n);
+
+		// 		r.Repr := r.Repr + {n};
+		// 		r.Tree := Node(t.color,t.value,newLeft.Tree,t.Tree.right);
+		// 		r.left := newLeft;
+		// 		if(newLeft == n){
+		// 			n.parent := t;
+		// 		}
+
+		// 		if(n.parent != null){
+		// 			ElemsRefTrans(n,newLeft,r);
+		// 			if(n != newLeft) {
+		// 				partialNoRRTrans(n.parent,newLeft,r);
+		// 			}
+
+		// 		assert(n.parent in r.ElemsRef());
+		// 		}
+		// 		return;
+		// 	}
+
+		// 	if (n.value > t.value) {
+		// 		var newRight := insertBST(t.right, n);
+		// 		r.Repr := r.Repr + {n};
+		// 		r.Tree := Node(t.color,t.value,t.Tree.left,newRight.Tree);
+		// 		r.right := newRight;
+		// 		if(newRight == n){
+		// 			n.parent := t;
+		// 		}
+
+
+		// 		if(n.parent != null){
+		// 			ElemsRefTrans(n,newRight,r);
+		// 			if(n != newRight) {
+		// 				partialNoRRTrans(n.parent,newRight,r);
+		// 			}
+		// 		}
+		// 		return;
+		// 	}
 			
-			assert(false);
+		// 	assert(false);
 
-		}
+		// }
 
 		// static method getGrandparent(t : RBTreeRef?) returns (g : RBTreeRef?)
 
