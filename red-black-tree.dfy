@@ -25,8 +25,29 @@ class RBTreeRef {
 		var right: RBTreeRef?
 		var parent: RBTreeRef?
 		var color: Color
+		predicate ValidWeak()
+			decreases Repr
+  		reads this, Repr {
+				this in Repr &&
+					// Tree.Node? &&
+					// Tree.value == value &&
+					// Tree.color == color &&
+					// (left == null ==> Tree.left.Empty?) &&
+					// (right == null ==> Tree.right.Empty?) &&
+					(left != null ==> left in Repr && left.Repr <= Repr && this !in left.Repr &&
+					left.ValidWeak() && left.parent == this) &&
+					(right != null ==> right in Repr && right.Repr <= Repr && this !in right.Repr &&
+					right.ValidWeak() && right.parent == this) &&
+					(left != null && right != null ==> left.Repr * right.Repr == {}) // &&
+					// isWellFormed(Tree)
+					// isBalanced(Tree) &&
+					// isOrdered(Tree)
+		}
+
+
 		predicate Valid()
 			decreases Repr
+			ensures Valid() ==>  ValidWeak() && isOrdered(Tree) && isBalanced(Tree)
   		reads this, Repr {
 				this in Repr &&
 					Tree.Node? &&
@@ -47,7 +68,8 @@ class RBTreeRef {
 
 		predicate ValidRB()
 			decreases Repr
-			ensures Valid() && noRedRed(Tree) ==> ValidRB()
+			ensures Valid() && noRedRed(Tree) <==> ValidRB()
+			// ensures ValidRB() ==> Valid()
   		reads this, Repr {
 				this in Repr &&
 					Tree.Node? &&
@@ -56,9 +78,9 @@ class RBTreeRef {
 					(left == null ==> Tree.left.Empty?) &&
 					(right == null ==> Tree.right.Empty?) &&
 					(left != null ==> left in Repr && left.Repr <= Repr && this !in left.Repr &&
-					left.Valid() && left.Tree == Tree.left && left.parent == this) &&
+					left.ValidRB() && left.Tree == Tree.left && left.parent == this) &&
 					(right != null ==> right in Repr && right.Repr <= Repr && this !in right.Repr &&
-					right.Valid() && right.Tree == Tree.right && right.parent == this) &&
+					right.ValidRB() && right.Tree == Tree.right && right.parent == this) &&
 					(left != null && right != null ==> left.Repr * right.Repr == {}) &&
 					// isWellFormed(Tree)
 					isBalanced(Tree) &&
@@ -125,9 +147,9 @@ class RBTreeRef {
 
 		function ElemsRef () : set<RBTreeRef>
 			reads this, this.Repr
-			requires this.Valid()
+			requires this.ValidWeak()
 			ensures this.ElemsRef() <= this.Repr
-			ensures forall i :: i in ElemsRef() ==> i.Valid() && i in this.Repr
+			ensures forall i :: i in ElemsRef() ==> i.ValidWeak() && i in this.Repr && (this.Valid() ==> i.Valid()) && (this.ValidRB() ==> i.ValidRB())
 			ensures forall i :: i in ElemsRef() && i != this ==> i.Repr < Repr && ReprN(i.parent) <= Repr && i.parent != null && i.parent in ElemsRef() && i.Repr < i.parent.Repr
 		{
 				{this} + (if left == null then {} else left.ElemsRef()) + (if right == null then {} else right.ElemsRef())
@@ -135,17 +157,17 @@ class RBTreeRef {
 
 		predicate PartialNoRR (root : RBTreeRef)
 			reads root, root.Repr
-			requires root.Valid()
+			requires root.ValidWeak()
 			requires this in root.ElemsRef()
-			ensures this.Valid()
 			decreases root.Repr - this.Repr
 		{
 			// this.parent != null ==>
 			this != root ==>
 				this.parent.PartialNoRR(root) &&
+        this.parent.Valid() &&
 				(this.parent.left == this || this.parent.right == this) &&
-				(this.parent.left == this ==> noRedRedR(this.parent.Tree)) &&
-				(this.parent.right == this ==> noRedRedL(this.parent.Tree))
+				(this.parent.left == this ==> noRedRedR(this.parent.Tree) && (this.parent.right == null || this.parent.right.ValidRB())) &&
+				(this.parent.right == this ==> noRedRedL(this.parent.Tree) && (this.parent.left == null || this.parent.left.ValidRB()))
 		}
 
 
@@ -154,6 +176,7 @@ class RBTreeRef {
 			reads this
 			requires this.parent != null
 		{
+			  this.parent.Valid() &&
 			  (this.parent.left == this || this.parent.right == this) &&
 				(this.parent.left == this ==> noRedRedRP(this.parent.Tree)) &&
 				(this.parent.right == this ==> noRedRedLP(this.parent.Tree))
@@ -338,10 +361,10 @@ class RBTreeRef {
 							right := n.parent.Tree);
 					}
 
-					assert(old@L1(ElemsN(n.parent))==ElemsN(n.parent));
-					assert(old@L1(ElemsN(uncle))==ElemsN(uncle));
-					assert(old@L1(n.parent.value)==n.parent.value);
-					assert(old@L1(uncle.value)==uncle.value);
+					// assert(old@L1(ElemsN(n.parent))==ElemsN(n.parent));
+					// assert(old@L1(ElemsN(uncle))==ElemsN(uncle));
+					// assert(old@L1(n.parent.value)==n.parent.value);
+					// assert(old@L1(uncle.value)==uncle.value);
 
 					assert(n.parent.parent.ValidRB());
 							// assert(isOrdered(n.parent.parent.Tree));
