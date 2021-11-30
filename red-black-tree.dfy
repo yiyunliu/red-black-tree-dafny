@@ -412,11 +412,14 @@ static twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
 					assert(n.parent.parent.Repr == old@L1(n.parent.parent.Repr));
 					assert(ElemsN(n.parent.parent) == old@L1(ElemsN(n.parent.parent)));
 					assert(countBlackN(n.parent.parent) == old@L1(countBlackN(n.parent.parent)));
+					
 					ValidFix@L1(r, n.parent.parent);
-					assert(n.parent.parent in r.ElemsRef());
 					if(n.parent.parent != r) {
+
 						assert(n.parent.parent.ValidWeak());
+						assert(old@L1(n.parent.parent.PartialNoRR(r)));
 						assert(n.parent.parent.PartialNoRRP());
+
 					}
 					
 					
