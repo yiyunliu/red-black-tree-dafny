@@ -1,29 +1,6 @@
 // https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#1910-binding-guards
 
 datatype Color = Red | Black
-twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
-	requires y.parent == old(y.parent)
-	requires y.Repr == old(y.Repr)
-	requires y.ValidWeak()
-	requires old(x.ValidWeak())
-	requires old(y in x.ElemsRef())
-	requires old(y.ElemsRef()) == y.ElemsRef()
-	requires forall o :: o !in y.ElemsRef() ==> unchanged(o)
-	ensures x.ValidWeak()
-	ensures y in x.ElemsRef()
-	ensures y.ValidWeak()
-	decreases old(x.Repr)
-{
-	if(x==y) {
-		return;
-	}
-	if(x.left != null && old(y in x.left.ElemsRef())) {
-		ValidFix(x.left, y);
-	}
-	else {
-		ValidFix(x.right, y);
-	}
-}
 
 
 class RBTreeRef {
@@ -35,6 +12,46 @@ class RBTreeRef {
 	var color: Color
 		
 		
+static twostate lemma ValidFix(x : RBTreeRef, y : RBTreeRef)
+	requires y.parent == old(y.parent)
+	requires y.Repr == old(y.Repr)
+	requires y.ValidWeak()
+	requires old(x.ValidWeak())
+	requires old(x.Valid())
+	requires old(y in x.ElemsRef())
+
+	requires old(y.ElemsRef()) == y.ElemsRef()
+	requires forall o :: o !in y.ElemsRef() ==> unchanged(o)
+	requires countBlackN(y) == old(countBlackN(y))
+	requires ElemsN(y) == old(ElemsN(y))
+	requires old(y.Valid())
+	requires y.Valid()
+
+	ensures x.ValidWeak()
+	ensures y in x.ElemsRef()
+	// ensures y.ValidWeak()
+	// ensures y.Valid()
+	ensures x.Valid()
+	ensures ElemsN(x) == old(ElemsN(x))
+	ensures countBlackN(x) == old(countBlackN(x))
+	decreases old(x.Repr)
+{
+	if(x==y) {
+		assert(x.Valid());
+		return;
+	}
+	if(x.left != null && old(y in x.left.ElemsRef())) {
+		assert(old(x.left.Valid()));
+		ValidFix(x.left, y);
+	}
+	else {
+		assert(old(x.right.Valid()));
+		assert(old(y in x.right.ElemsRef()));
+		ValidFix(x.right, y);
+	}
+}
+
+
 		// termination metric
 		predicate ValidWeak()
 			decreases Repr
